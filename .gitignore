@@ -1,2 +1,11 @@
 # METADATA
 .metadata/
+
+# STM32
+/Debug/
+/Release/
+*.launch
+*.log
+*.elf
+*.bin
+*.hex

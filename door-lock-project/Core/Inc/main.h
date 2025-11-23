@@ -58,6 +58,22 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+/* Door Lock System Pins (PA0-PA6) */
+#define OPEN_BUTTON_Pin GPIO_PIN_0
+#define OPEN_BUTTON_GPIO_Port GPIOA
+#define DOOR_SENSOR_Pin GPIO_PIN_1
+#define DOOR_SENSOR_GPIO_Port GPIOA
+#define MUTE_BUTTON_Pin GPIO_PIN_2
+#define MUTE_BUTTON_GPIO_Port GPIOA
+#define RED_LED_Pin GPIO_PIN_3
+#define RED_LED_GPIO_Port GPIOA
+#define GREEN_LED_Pin GPIO_PIN_4
+#define GREEN_LED_GPIO_Port GPIOA
+#define SOLENOID_LOCK_Pin GPIO_PIN_5
+#define SOLENOID_LOCK_GPIO_Port GPIOA
+#define BUZZER_CTRL_Pin GPIO_PIN_6
+#define BUZZER_CTRL_GPIO_Port GPIOA
+/* Reserved for Password Module: PA7-PA11, PB0-PB2, PC0+ */
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

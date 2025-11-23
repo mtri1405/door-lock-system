@@ -9,12 +9,11 @@
 #define INC_DOOR_H_
 
 #include "global.h"
-// Khai báo sensor cửa
-#define DOOR_SENSOR_PIN GPIO_PIN_3
-#define DOOR_SENSOR_PORT GPIOB
 
 int isDoorClose();
 int isPasswordCorrect();
+void unlock_door();
+void lock_door();
 void aleart();
 void stop_aleart();
 void update_led();

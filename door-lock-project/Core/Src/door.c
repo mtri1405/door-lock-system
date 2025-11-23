@@ -18,8 +18,8 @@ typedef enum {
 /*
  * Lock state
  */
-#define LOCK 0
-#define OPEN 1
+#define STATE_LOCK 0
+#define STATE_OPEN 1
 
 // TimeOut for Closing 20 Tick
 #define TIMEOUT 20
@@ -33,35 +33,47 @@ int open_timer = 0;
 
 // Kiểm tra xem cửa có đóng không
 int isDoorClose(){
-	return (HAL_GPIO_ReadPin(DOOR_SENSOR_PORT, DOOR_SENSOR_PIN) == GPIO_PIN_SET);
+	return (HAL_GPIO_ReadPin(DOOR_SENSOR_GPIO_Port, DOOR_SENSOR_Pin) == GPIO_PIN_SET);
 }
 
 int isPasswordCorrect() {
 	// TODO Kiểm tra mật khẩu có đúng không
 	return 1;
 }
+
+// Mở khóa cửa (điều khiển solenoid)
+void unlock_door() {
+	HAL_GPIO_WritePin(SOLENOID_LOCK_GPIO_Port, SOLENOID_LOCK_Pin, GPIO_PIN_SET);
+}
+
+// Khóa cửa
+void lock_door() {
+	HAL_GPIO_WritePin(SOLENOID_LOCK_GPIO_Port, SOLENOID_LOCK_Pin, GPIO_PIN_RESET);
+}
+
 // Bật báo động
 void aleart() {
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);	// Giả sử đây là còi cảnh báo
+	HAL_GPIO_WritePin(BUZZER_CTRL_GPIO_Port, BUZZER_CTRL_Pin, GPIO_PIN_SET);
 }
+
 // Tắt báo động
 void stop_aleart() {
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(BUZZER_CTRL_GPIO_Port, BUZZER_CTRL_Pin, GPIO_PIN_RESET);
 }
 
 
 void update_led() {
     switch (door_state) {
     case DOOR_LOCKED:
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);   // LED đỏ
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET); // LED xanh
+        HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin, GPIO_PIN_SET);     // RED LED on
+        HAL_GPIO_WritePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin, GPIO_PIN_RESET); // GREEN LED off
         break;
     case DOOR_UNLOCKED:
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin, GPIO_PIN_SET);   // GREEN LED on
         break;
     case DOOR_ALARM:
-        HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_0); // nháy đỏ
+        HAL_GPIO_TogglePin(RED_LED_GPIO_Port, RED_LED_Pin);  // RED LED blink
         break;
     }
 }
@@ -69,8 +81,10 @@ void update_led() {
 void door_fsm_run(void){
 	switch(door_state){
 	case DOOR_LOCKED:
+		lock_door();
 		if (isOpenPress() && isPasswordCorrect()){
 			door_state = DOOR_UNLOCKED;
+			unlock_door();
 			open_timer = TIMEOUT;
 			stop_aleart();
 			update_led();
@@ -81,12 +95,13 @@ void door_fsm_run(void){
 			open_timer--;
 
 		} else {
-			if (!isDoorClose()){
+			if (isDoorClose()){  // Door is closed
+				door_state = DOOR_LOCKED;
+				lock_door();
+				stop_aleart();
+			} else {  // Door is open after timeout
 				door_state = DOOR_ALARM;
 				aleart();
-			} else{
-				door_state = DOOR_LOCKED;
-				stop_aleart();
 			}
 		}
 		update_led();
@@ -94,12 +109,14 @@ void door_fsm_run(void){
 	case DOOR_ALARM:
 		if (isDoorClose()){
 			door_state = DOOR_LOCKED;
+			lock_door();
 			stop_aleart();
 		}
 		update_led();
 		break;
 	default:
 		door_state = DOOR_LOCKED;
+		lock_door();
 		break;
 	}
 }

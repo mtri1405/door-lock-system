@@ -6,21 +6,22 @@
  */
 
 #include "button.h"
-// Khai báo button
-#define open_button_pin GPIO_PIN_1
 
-uint16_t pin_of_buttons[NO_BUTTON] = {
-open_button_pin,
-};
+#define NO_OF_BUTTONS 3
+int KeyReg0[NO_OF_BUTTONS] = { NORMAL_STATE, NORMAL_STATE, NORMAL_STATE };
+int KeyReg1[NO_OF_BUTTONS] = { NORMAL_STATE, NORMAL_STATE, NORMAL_STATE };
+int KeyReg2[NO_OF_BUTTONS] = { NORMAL_STATE, NORMAL_STATE, NORMAL_STATE };
+int KeyReg3[NO_OF_BUTTONS] = { NORMAL_STATE, NORMAL_STATE, NORMAL_STATE };
+int button_flag[NO_OF_BUTTONS] = { 0, 0, 0 };
 
-keyInput buttons[NO_BUTTON];
+// Mapping button (using OPEN_BUTTON_Pin for single button setup)
+GPIO_TypeDef *BUTTON_PORT = GPIOA;
+uint16_t BUTTON_PIN[NO_OF_BUTTONS] = { OPEN_BUTTON_Pin, OPEN_BUTTON_Pin,
+		OPEN_BUTTON_Pin };  // TODO: Update when more buttons are connected
 
-int isButtonPress(int idx) {
-	if (idx < 0 || idx > NO_BUTTON) {
-		return -1;
-	}
-	if (buttons[idx].flag == 1) {
-		buttons[idx].flag = 0;
+int isButtonPress(int index) {
+	if (button_flag[index] == 1) {
+		button_flag[index] = 0;
 		return 1;
 	}
 	return 0;
@@ -31,26 +32,19 @@ int isOpenPress() {
 }
 
 void getKeyInput() {
-	for (int i = 0; i < NO_BUTTON; i++) {
-		buttons[i].keyReg2 = buttons[i].keyReg1;
-		buttons[i].keyReg1 = buttons[i].keyReg0;
-		buttons[i].keyReg0 = HAL_GPIO_ReadPin(GPIOB, pin_of_buttons[i]);
-		if (buttons[i].keyReg1 == buttons[i].keyReg2
-				&& buttons[i].keyReg1 == buttons[i].keyReg0) {
-			if (buttons[i].keyReg2 != buttons[i].keyReg3) {
-				buttons[i].keyReg3 = buttons[i].keyReg2;
-				if (buttons[i].keyReg3 == PRESS_STATE) {
-					buttons[i].flag = 1;
-				}
-			} else {
-				buttons[i].timeLongPress--;
-				if (buttons[i].timeLongPress <= 0) {
-					buttons[i].timeLongPress = timeOutForKeyPress;
-					if (buttons[i].keyReg3 = PRESS_STATE) {
-						buttons[i].flag = 1;
-					}
+	for (int i = 0; i < NO_OF_BUTTONS; i++) {
+		KeyReg0[i] = KeyReg1[i];
+		KeyReg1[i] = KeyReg2[i];
+		KeyReg2[i] = HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN[i]);
+
+		if ((KeyReg0[i] == KeyReg1[i]) && (KeyReg1[i] == KeyReg2[i])) {
+			if (KeyReg3[i] != KeyReg2[i]) {
+				KeyReg3[i] = KeyReg2[i];
+				if (KeyReg2[i] == PRESS_STATE) {
+					button_flag[i] = 1;
 				}
 			}
+
 		}
 	}
 }

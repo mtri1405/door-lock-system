@@ -1,0 +1,8 @@
+door.c:35:5:isDoorClose	8	static
+door.c:39:5:isPasswordCorrect	4	static
+door.c:45:6:unlock_door	8	static
+door.c:50:6:lock_door	8	static
+door.c:55:6:aleart	8	static
+door.c:60:6:stop_aleart	8	static
+door.c:65:6:update_led	8	static
+door.c:81:6:door_fsm_run	8	static

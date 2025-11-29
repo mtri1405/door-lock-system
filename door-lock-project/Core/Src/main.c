@@ -21,7 +21,6 @@
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
-
 /* USER CODE BEGIN Includes */
 #include "global.h"
 /* USER CODE END Includes */
@@ -91,12 +90,15 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start_IT(&htim2);
+
+	password_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
 		getKeyInput();
+		password_fsm_run();
 		door_fsm_run();
 		Buzzer_Run();
 
@@ -202,21 +204,27 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /* Configure GPIO Output Level */
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, RED_LED_Pin|GREEN_LED_Pin|SOLENOID_LOCK_Pin|BUZZER_CTRL_Pin, GPIO_PIN_RESET);
 
-  /* Configure Input Pins : OPEN_BUTTON, DOOR_SENSOR, MUTE_BUTTON */
+  /*Configure GPIO pins : OPEN_BUTTON_Pin DOOR_SENSOR_Pin MUTE_BUTTON_Pin */
   GPIO_InitStruct.Pin = OPEN_BUTTON_Pin|DOOR_SENSOR_Pin|MUTE_BUTTON_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /* Configure Output Pins : RED_LED, GREEN_LED, SOLENOID_LOCK, BUZZER_CTRL */
+  /*Configure GPIO pins : RED_LED_Pin GREEN_LED_Pin SOLENOID_LOCK_Pin BUZZER_CTRL_Pin */
   GPIO_InitStruct.Pin = RED_LED_Pin|GREEN_LED_Pin|SOLENOID_LOCK_Pin|BUZZER_CTRL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
 }
 
 /* USER CODE BEGIN 4 */

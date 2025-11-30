@@ -6,7 +6,7 @@
  */
 
 #include "door.h"
-
+#include "password.h"
 
 typedef enum {
     DOOR_LOCKED,
@@ -38,7 +38,7 @@ int isDoorClose(){
 
 int isPasswordCorrect() {
 	// TODO Kiểm tra mật khẩu có đúng không
-	return 1;
+	return password_is_correct_event();
 }
 
 // Mở khóa cửa (điều khiển solenoid)

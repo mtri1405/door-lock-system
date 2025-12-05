@@ -58,7 +58,6 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-/* Door Lock System Pins (PA0-PA6) */
 #define OPEN_BUTTON_Pin GPIO_PIN_0
 #define OPEN_BUTTON_GPIO_Port GPIOA
 #define DOOR_SENSOR_Pin GPIO_PIN_1
@@ -73,7 +72,20 @@ void Error_Handler(void);
 #define SOLENOID_LOCK_GPIO_Port GPIOA
 #define BUZZER_CTRL_Pin GPIO_PIN_6
 #define BUZZER_CTRL_GPIO_Port GPIOA
-/* Reserved for Password Module: PA7-PA11, PB0-PB2, PC0+ */
+#define KPD_R1_Pin GPIO_PIN_0
+#define KPD_R1_GPIO_Port GPIOB
+#define KPD_R2_Pin GPIO_PIN_1
+#define KPD_R2_GPIO_Port GPIOB
+#define KPD_R3_Pin GPIO_PIN_2
+#define KPD_R3_GPIO_Port GPIOB
+#define KPD_R4_Pin GPIO_PIN_3
+#define KPD_R4_GPIO_Port GPIOB
+#define KPD_C1_Pin GPIO_PIN_4
+#define KPD_C1_GPIO_Port GPIOB
+#define KPD_C2_Pin GPIO_PIN_5
+#define KPD_C2_GPIO_Port GPIOB
+#define KPD_C3_Pin GPIO_PIN_8
+#define KPD_C3_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

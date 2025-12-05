@@ -52,12 +52,12 @@ void lock_door() {
 }
 
 // Bật báo động
-void aleart() {
+void alert() {
 	HAL_GPIO_WritePin(BUZZER_CTRL_GPIO_Port, BUZZER_CTRL_Pin, GPIO_PIN_SET);
 }
 
 // Tắt báo động
-void stop_aleart() {
+void stop_alert() {
 	HAL_GPIO_WritePin(BUZZER_CTRL_GPIO_Port, BUZZER_CTRL_Pin, GPIO_PIN_RESET);
 }
 
@@ -75,6 +75,9 @@ void update_led() {
     case DOOR_ALARM:
         HAL_GPIO_TogglePin(RED_LED_GPIO_Port, RED_LED_Pin);  // RED LED blink
         break;
+    case DOOR_WAIT_TO_CLOSE:
+    default:
+    	break;
     }
 }
 
@@ -86,7 +89,7 @@ void door_fsm_run(void){
 			door_state = DOOR_UNLOCKED;
 			unlock_door();
 			open_timer = TIMEOUT;
-			stop_aleart();
+			stop_alert();
 			update_led();
 		}
 		break;
@@ -98,10 +101,10 @@ void door_fsm_run(void){
 			if (isDoorClose()){  // Door is closed
 				door_state = DOOR_LOCKED;
 				lock_door();
-				stop_aleart();
+				stop_alert();
 			} else {  // Door is open after timeout
 				door_state = DOOR_ALARM;
-				aleart();
+				alert();
 			}
 		}
 		update_led();
@@ -110,7 +113,7 @@ void door_fsm_run(void){
 		if (isDoorClose()){
 			door_state = DOOR_LOCKED;
 			lock_door();
-			stop_aleart();
+			stop_alert();
 		}
 		update_led();
 		break;

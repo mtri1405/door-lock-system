@@ -6,7 +6,7 @@
  */
 
 #include "password.h"
-#include "lcd.h"     
+#include "lcd_i2c.h"     
 #include <string.h>
 
 /* ====== Cấu hình chung ====== */
@@ -63,8 +63,8 @@ static int intruder_alarm_flag   = 0;
  * R4    *    0    #
  *
  * Bạn phải đặt label trong .ioc:
- *   - KPD_R1, KPD_R2, KPD_R3, KPD_R4  (output)
- *   - KPD_C1, KPD_C2, KPD_C3          (input pull-up)
+ *   - KPD_R1, KPD_R2, KPD_R3, KPD_R4  (output on PB0-PB3)
+ *   - KPD_C1, KPD_C2, KPD_C3          (input pull-up on PB4, PB5, PB8)
  */
 
 #define ROW1_GPIO_Port   KPD_R1_GPIO_Port
@@ -92,11 +92,11 @@ static int intruder_alarm_flag   = 0;
 /* ====== LCD helper ====== */
 
 static void lcd_show_message(const char *line1, const char *line2) {
-    LCD_Clear();
-    LCD_SetCursor(0, 0);
-    LCD_Print(line1);
-    LCD_SetCursor(1, 0);
-    LCD_Print(line2);
+    LCD_I2C_Clear();
+    LCD_I2C_SetCursor(0, 0);
+    LCD_I2C_Print(line1);
+    LCD_I2C_SetCursor(1, 0);
+    LCD_I2C_Print(line2);
 }
 
 // Hiển thị dạng PASS: **** trên dòng 2
@@ -115,8 +115,8 @@ static void lcd_show_password_mask(void) {
     }
     buf[6 + PASSWORD_LENGTH] = '\0';
 
-    LCD_SetCursor(1, 0);
-    LCD_Print(buf);
+    LCD_I2C_SetCursor(1, 0);
+    LCD_I2C_Print(buf);
 }
 
 /* ====== Password helper ====== */

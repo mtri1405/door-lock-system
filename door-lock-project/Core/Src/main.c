@@ -23,6 +23,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "global.h"
+#include "lcd_i2c.h"
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,6 +42,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+I2C_HandleTypeDef hi2c1;
+
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
@@ -49,6 +53,7 @@ TIM_HandleTypeDef htim2;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_I2C1_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -87,10 +92,63 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_I2C1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start_IT(&htim2);
 
+	HAL_Delay(500);  /* Wait for system stabilization */
+	
+	/* I2C Address Scan - Find LCD I2C device */
+	uint8_t found_address = 0;
+	
+	/* Try PCF8574 range first (0x20-0x27) */
+	for(uint8_t addr = 0x20; addr <= 0x27; addr++) {
+		if(HAL_I2C_IsDeviceReady(&hi2c1, (addr << 1), 1, 100) == HAL_OK) {
+			found_address = addr;
+			break;
+		}
+	}
+	
+	/* If not found, try PCF8574A range (0x38-0x3F) */
+	if(found_address == 0) {
+		for(uint8_t addr = 0x38; addr <= 0x3F; addr++) {
+			if(HAL_I2C_IsDeviceReady(&hi2c1, (addr << 1), 1, 100) == HAL_OK) {
+				found_address = addr;
+				break;
+			}
+		}
+	}
+	
+	/* If found, set address and initialize LCD */
+	if(found_address != 0) {
+		LCD_I2C_SetAddress(found_address);
+		LCD_I2C_Init(&hi2c1);
+		
+		LCD_I2C_Clear();
+		LCD_I2C_SetCursor(0, 0);
+		LCD_I2C_Print("LCD Found!");
+		LCD_I2C_SetCursor(1, 0);
+		
+		char addr_str[16];
+		sprintf(addr_str, "0x%02X", found_address);
+		LCD_I2C_Print(addr_str);
+		HAL_Delay(2000);
+		
+		LCD_I2C_Clear();
+		LCD_I2C_SetCursor(0, 0);
+		LCD_I2C_Print("Door Lock Ready");
+	} else {
+		/* LCD not responding - initialize with default address anyway */
+		LCD_I2C_Init(&hi2c1);
+		LCD_I2C_Clear();
+		LCD_I2C_SetCursor(0, 0);
+		LCD_I2C_Print("LCD Not Found!");
+		LCD_I2C_SetCursor(1, 0);
+		LCD_I2C_Print("Check I2C wire");
+		HAL_Delay(3000);
+	}
+	
 	password_init();
   /* USER CODE END 2 */
 
@@ -144,6 +202,40 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
 }
 
 /**
@@ -220,7 +312,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-
+  /*Configure GPIO pins : KPD_R1_Pin KPD_R2_Pin KPD_R3_Pin KPD_R4_Pin
+                           KPD_C1_Pin KPD_C2_Pin KPD_C3_Pin */
+  GPIO_InitStruct.Pin = KPD_R1_Pin|KPD_R2_Pin|KPD_R3_Pin|KPD_R4_Pin
+                          |KPD_C1_Pin|KPD_C2_Pin|KPD_C3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);

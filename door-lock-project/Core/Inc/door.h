@@ -14,8 +14,8 @@ int isDoorClose();
 int isPasswordCorrect();
 void unlock_door();
 void lock_door();
-void aleart();
-void stop_aleart();
+void alert();
+void stop_alert();
 void update_led();
 void door_fsm_run(void);
 

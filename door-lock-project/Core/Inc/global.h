@@ -12,6 +12,8 @@
 #include "button.h"
 #include "door.h"
 #include "buzzer.h"
+#include "password.h"
+#include "lcd.h"
 #include "software_timer.h"
 #include <stdbool.h>
 #define SECOND 1000

@@ -23,8 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "global.h"
-#include "lcd_i2c.h"
-#include <stdio.h>
+#include "liquidcrystal_i2c.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,7 +46,7 @@ I2C_HandleTypeDef hi2c1;
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
-
+#define DEV_ADDR_7BIT 0x27 // 0x3F
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -61,7 +60,8 @@ static void MX_TIM2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+#define LED_ON() HAL_GPIO_WritePin(GPIOB, RED_LEDB2_Pin, GPIO_PIN_SET)
+#define LED_OFF() HAL_GPIO_WritePin(GPIOB, RED_LEDB2_Pin, GPIO_PIN_RESET)
 /* USER CODE END 0 */
 
 /**
@@ -95,73 +95,31 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-	HAL_TIM_Base_Start_IT(&htim2);
-
-	HAL_Delay(500);  /* Wait for system stabilization */
-	
-	/* I2C Address Scan - Find LCD I2C device */
-	uint8_t found_address = 0;
-	
-	/* Try PCF8574 range first (0x20-0x27) */
-	for(uint8_t addr = 0x20; addr <= 0x27; addr++) {
-		if(HAL_I2C_IsDeviceReady(&hi2c1, (addr << 1), 1, 100) == HAL_OK) {
-			found_address = addr;
-			break;
-		}
-	}
-	
-	/* If not found, try PCF8574A range (0x38-0x3F) */
-	if(found_address == 0) {
-		for(uint8_t addr = 0x38; addr <= 0x3F; addr++) {
-			if(HAL_I2C_IsDeviceReady(&hi2c1, (addr << 1), 1, 100) == HAL_OK) {
-				found_address = addr;
-				break;
-			}
-		}
-	}
-	
-	/* If found, set address and initialize LCD */
-	if(found_address != 0) {
-		LCD_I2C_SetAddress(found_address);
-		LCD_I2C_Init(&hi2c1);
-		
-		LCD_I2C_Clear();
-		LCD_I2C_SetCursor(0, 0);
-		LCD_I2C_Print("LCD Found!");
-		LCD_I2C_SetCursor(1, 0);
-		
-		char addr_str[16];
-		sprintf(addr_str, "0x%02X", found_address);
-		LCD_I2C_Print(addr_str);
-		HAL_Delay(2000);
-		
-		LCD_I2C_Clear();
-		LCD_I2C_SetCursor(0, 0);
-		LCD_I2C_Print("Door Lock Ready");
-	} else {
-		/* LCD not responding - initialize with default address anyway */
-		LCD_I2C_Init(&hi2c1);
-		LCD_I2C_Clear();
-		LCD_I2C_SetCursor(0, 0);
-		LCD_I2C_Print("LCD Not Found!");
-		LCD_I2C_SetCursor(1, 0);
-		LCD_I2C_Print("Check I2C wire");
-		HAL_Delay(3000);
-	}
-	
-	password_init();
+  LED_OFF();
+  //Nomral static Printing
+      HD44780_Init(2);
+      HD44780_Clear();
+      HD44780_Backlight();
+      HD44780_SetCursor(0,0);
+      HD44780_PrintStr("Welcome To");
+      HD44780_SetCursor(0,1);
+      HD44780_PrintStr("CircuitGator HQ");
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
-		getKeyInput();
-		password_fsm_run();
-		door_fsm_run();
-		Buzzer_Run();
-
-		// Giữ lại delay để giảm tải CPU
-		HAL_Delay(10);
+//		getKeyInput();
+//		password_fsm_run();
+//		door_fsm_run();
+//		Buzzer_Run();
+		HAL_StatusTypeDef ok = HAL_I2C_IsDeviceReady(&hi2c1, (DEV_ADDR_7BIT << 1), 2, 100);
+		if (ok == HAL_OK){
+			LED_ON();
+		} else {
+			LED_OFF();
+		}
+		HAL_Delay(300);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -181,10 +139,13 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -193,9 +154,9 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
@@ -293,11 +254,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, RED_LED_Pin|GREEN_LED_Pin|SOLENOID_LOCK_Pin|BUZZER_CTRL_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(RED_LEDB2_GPIO_Port, RED_LEDB2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : OPEN_BUTTON_Pin DOOR_SENSOR_Pin MUTE_BUTTON_Pin */
   GPIO_InitStruct.Pin = OPEN_BUTTON_Pin|DOOR_SENSOR_Pin|MUTE_BUTTON_Pin;
@@ -312,13 +277,20 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : KPD_R1_Pin KPD_R2_Pin KPD_R3_Pin KPD_R4_Pin
-                           KPD_C1_Pin KPD_C2_Pin KPD_C3_Pin */
-  GPIO_InitStruct.Pin = KPD_R1_Pin|KPD_R2_Pin|KPD_R3_Pin|KPD_R4_Pin
-                          |KPD_C1_Pin|KPD_C2_Pin|KPD_C3_Pin;
+  /*Configure GPIO pins : KPD_R1_Pin KPD_R2_Pin KPD_R4_Pin KPD_C1_Pin
+                           KPD_C2_Pin KPD_C3_Pin */
+  GPIO_InitStruct.Pin = KPD_R1_Pin|KPD_R2_Pin|KPD_R4_Pin|KPD_C1_Pin
+                          |KPD_C2_Pin|KPD_C3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : RED_LEDB2_Pin */
+  GPIO_InitStruct.Pin = RED_LEDB2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(RED_LEDB2_GPIO_Port, &GPIO_InitStruct);
 
 }
 

@@ -15,7 +15,7 @@ static bool isBuzzerActive = false;
  * @brief Hàm chạy logic chính của còi báo động.
  * Hãy gọi hàm này liên tục trong vòng lặp while(1) của main.c
  */
-void Buzzer_Run(void) { /* USER CODE END WHILE */
+void Buzzer_Run(void) {
 	//input pullup
 	uint8_t doorState = HAL_GPIO_ReadPin(DOOR_SENSOR_GPIO_Port,
 			DOOR_SENSOR_Pin);

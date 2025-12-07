@@ -9,13 +9,14 @@
 #define INC_GLOBAL_H_
 
 #include "main.h"
+#include <stdio.h>
+#include <stdbool.h>
 #include "button.h"
 #include "door.h"
 #include "buzzer.h"
-#include "password.h"
-#include "lcd.h"
+//#include "password.h"
+//#include "lcd.h"
 #include "software_timer.h"
-#include <stdbool.h>
 #define SECOND 1000
 
 

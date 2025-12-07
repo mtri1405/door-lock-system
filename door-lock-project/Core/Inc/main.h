@@ -76,8 +76,8 @@ void Error_Handler(void);
 #define KPD_R1_GPIO_Port GPIOB
 #define KPD_R2_Pin GPIO_PIN_1
 #define KPD_R2_GPIO_Port GPIOB
-#define KPD_R3_Pin GPIO_PIN_2
-#define KPD_R3_GPIO_Port GPIOB
+#define RED_LEDB2_Pin GPIO_PIN_2
+#define RED_LEDB2_GPIO_Port GPIOB
 #define KPD_R4_Pin GPIO_PIN_3
 #define KPD_R4_GPIO_Port GPIOB
 #define KPD_C1_Pin GPIO_PIN_4

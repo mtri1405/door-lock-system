@@ -26,8 +26,7 @@ Core/Src/door.o: ../Core/Src/door.c ../Core/Inc/door.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h \
  ../Core/Inc/button.h ../Core/Inc/door.h ../Core/Inc/buzzer.h \
- ../Core/Inc/password.h ../Core/Inc/lcd.h ../Core/Inc/software_timer.h \
- ../Core/Inc/password.h
+ ../Core/Inc/software_timer.h ../Core/Inc/password.h
 
 ../Core/Inc/door.h:
 
@@ -90,10 +89,6 @@ Core/Src/door.o: ../Core/Src/door.c ../Core/Inc/door.h \
 ../Core/Inc/door.h:
 
 ../Core/Inc/buzzer.h:
-
-../Core/Inc/password.h:
-
-../Core/Inc/lcd.h:
 
 ../Core/Inc/software_timer.h:
 

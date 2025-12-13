@@ -1,0 +1,8 @@
+eeprom_i2c.c:20:19:EEPROM_Init	16	static
+eeprom_i2c.c:38:9:EEPROM_IsConnected	16	static
+eeprom_i2c.c:50:19:EEPROM_WriteByte	40	static
+eeprom_i2c.c:78:19:EEPROM_ReadByte	40	static
+eeprom_i2c.c:100:19:EEPROM_WriteBuffer	56	static
+eeprom_i2c.c:148:19:EEPROM_ReadBuffer	40	static
+eeprom_i2c.c:169:19:EEPROM_WritePassword	24	static
+eeprom_i2c.c:197:19:EEPROM_ReadPassword	24	static

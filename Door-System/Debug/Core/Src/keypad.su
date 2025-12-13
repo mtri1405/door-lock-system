@@ -1,0 +1,6 @@
+keypad.c:36:6:Keypad_Init	8	static
+keypad.c:47:13:Keypad_SetAllRowsHigh	8	static
+keypad.c:60:13:Keypad_SetRowHigh	16	static
+keypad.c:76:22:Keypad_ReadColumn	16	static
+keypad.c:90:6:Keypad_GetKey	16	static
+keypad.c:140:6:Keypad_WaitForKey	16	static

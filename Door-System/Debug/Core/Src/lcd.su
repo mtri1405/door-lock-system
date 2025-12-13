@@ -1,0 +1,10 @@
+lcd.c:61:6:LCD_Init	8	static
+lcd.c:87:6:LCD_Clear	8	static
+lcd.c:92:6:LCD_SetCursor	24	static
+lcd.c:107:6:LCD_Print	16	static
+lcd.c:113:6:LCD_PutChar	16	static
+lcd.c:119:13:LCD_PulseEnable	8	static
+lcd.c:129:13:LCD_Write4Bits	16	static
+lcd.c:146:13:LCD_Send	16	static
+lcd.c:157:6:LCD_SendCommand	16	static
+lcd.c:162:6:LCD_SendData	16	static

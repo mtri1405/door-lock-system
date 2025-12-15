@@ -1,10 +1,6 @@
 #ifndef INC_LCD_H_
 #define INC_LCD_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Includes ------------------------------------------------------------------*/
 #include "global.h"
 
@@ -18,8 +14,15 @@ void LCD_PutChar(char c);
 void LCD_SendCommand(uint8_t cmd);
 void LCD_SendData(uint8_t data);
 
-#ifdef __cplusplus
-}
-#endif
-
+//void lcd_init (void);   // initialize lcd
+//
+//void lcd_send_cmd (char cmd);  // send command to the lcd
+//
+//void lcd_send_data (char data);  // send data to the lcd
+//
+//void lcd_send_string (char *str);  // send string to the lcd
+//
+//void lcd_clear_display (void);	//clear display lcd
+//
+//void lcd_goto_XY (int row, int col); //set proper location on screen
 #endif

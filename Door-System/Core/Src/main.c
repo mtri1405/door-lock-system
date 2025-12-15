@@ -1,31 +1,5 @@
 /* USER CODE BEGIN Header */
-/**
- ******************************************************************************
- * @file           : main.c
- * @brief          : Electronic Smart Lock System - Main Application
- * @author         : Senior Embedded Software Engineer
- * @date           : December 2025
- * @version        : 1.0
- ******************************************************************************
- * @attention
- *
- * Copyright (c) 2025 STMicroelectronics.
- * All rights reserved.
- *
- * This software is licensed under terms that can be found in the LICENSE file
- * in the root directory of this software component.
- * If no LICENSE file comes with this software, it is provided AS-IS.
- *
- * MCU: STM32F103C6
- * Features:
- * - LCD 16x2 Display (4-bit mode)
- * - 3x4 Matrix Keypad
- * - I2C EEPROM (AT24C04/AT24C32) for password storage
- * - Relay/Solenoid lock control
- * - Active buzzer for alerts
- * - Magnetic reed switch for door status
- * - Security features: lockout after 3 wrong attempts
- * - Auto-lock and door open alarm
+/*
  *
  ******************************************************************************
  */
@@ -106,14 +80,10 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start_IT(&htim2);
-	password_init();
+//	password_init();
 	/* Initialize custom drivers */
 	LCD_Init();
 
-	LCD_Clear();
-	LCD_SetCursor(0, 0);
-	LCD_Print("Enter Password:");
-	LCD_SetCursor(1, 0);
 
   /* USER CODE END 2 */
 
@@ -228,6 +198,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOA, LCD_D4_Pin|LCD_D5_Pin|LCD_D7_Pin|LCD_RS_Pin
                           |LCD_EN_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, KPD_C1_Pin|KPD_C2_Pin|KPD_C3_Pin, GPIO_PIN_SET);
+
   /*Configure GPIO pins : LCD_D4_Pin LCD_D5_Pin LCD_D7_Pin LCD_RS_Pin
                            LCD_EN_Pin */
   GPIO_InitStruct.Pin = LCD_D4_Pin|LCD_D5_Pin|LCD_D7_Pin|LCD_RS_Pin
@@ -243,12 +216,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(LCD_D6_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : KPD_R1_Pin KPD_R2_Pin KPD_R3_Pin KPD_R4_Pin
-                           KPD_C1_Pin KPD_C2_Pin KPD_C3_Pin */
-  GPIO_InitStruct.Pin = KPD_R1_Pin|KPD_R2_Pin|KPD_R3_Pin|KPD_R4_Pin
-                          |KPD_C1_Pin|KPD_C2_Pin|KPD_C3_Pin;
+  /*Configure GPIO pins : KPD_R1_Pin KPD_R2_Pin KPD_R3_Pin KPD_R4_Pin */
+  GPIO_InitStruct.Pin = KPD_R1_Pin|KPD_R2_Pin|KPD_R3_Pin|KPD_R4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : KPD_C1_Pin KPD_C2_Pin KPD_C3_Pin */
+  GPIO_InitStruct.Pin = KPD_C1_Pin|KPD_C2_Pin|KPD_C3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 }

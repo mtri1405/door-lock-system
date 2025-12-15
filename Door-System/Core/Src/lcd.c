@@ -163,3 +163,4 @@ void LCD_SendData(uint8_t data) {
     LCD_Send(data, 1);
     HAL_Delay(1);
 }
+

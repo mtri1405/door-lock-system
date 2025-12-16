@@ -89,8 +89,10 @@ int main(void)
 	LCD_Print("LCD Test OK!");
 	LCD_SetCursor(1, 0);
 	LCD_Print("System Ready");
-	HAL_Delay(2000); // Delay 2s
+	HAL_Delay(2000); // Hiển thị 2 giây
 	
+	// Initialize subsystems
+	door_init();
 	password_init();
 
   /* USER CODE END 2 */
@@ -98,10 +100,10 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
-		password_fsm_run();  // handle keypad + password + lockout
-//		door_fsm_run(); // handle solenoid + door sensor + LEDs (once you reenable it)
-//		Buzzer_Run();        // handle buzzer timeout + mute button
-		HAL_Delay(5);        // small delay to reduce CPU load
+		password_fsm_run();  // Handle keypad + password + lockout
+		door_fsm_run();      // Handle solenoid + door sensor + LEDs
+		Buzzer_Run();        // Handle buzzer alarm + mute button
+		HAL_Delay(10);       // Small delay to reduce CPU load
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -204,18 +206,27 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, LCD_D4_Pin|LCD_D5_Pin|LCD_D6_Pin|LCD_D7_Pin
-                          |LCD_RS_Pin|LCD_EN_Pin, GPIO_PIN_RESET);
+                          |LCD_RS_Pin|LCD_EN_Pin|DOOR_RED_LED_Pin|DOOR_GREEN_LED_Pin
+                          |DOOR_SOLENOID_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, KPD_R1_Pin|KPD_R2_Pin|KPD_R3_Pin|KPD_R4_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : LCD_D4_Pin LCD_D5_Pin LCD_D6_Pin LCD_D7_Pin LCD_RS_Pin
-                           LCD_EN_Pin */
-  GPIO_InitStruct.Pin = LCD_D4_Pin|LCD_D5_Pin|LCD_D6_Pin|LCD_D7_Pin|LCD_RS_Pin
-                          |LCD_EN_Pin;
+  /*Configure GPIO pins : LCD_D4_Pin LCD_D5_Pin LCD_D6_Pin LCD_D7_Pin
+                           LCD_RS_Pin LCD_EN_Pin DOOR_RED_LED_Pin DOOR_GREEN_LED_Pin
+                           DOOR_SOLENOID_Pin */
+  GPIO_InitStruct.Pin = LCD_D4_Pin|LCD_D5_Pin|LCD_D6_Pin|LCD_D7_Pin
+                          |LCD_RS_Pin|LCD_EN_Pin|DOOR_RED_LED_Pin|DOOR_GREEN_LED_Pin
+                          |DOOR_SOLENOID_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : DOOR_SENSOR_Pin BUZZER_CTRL_Pin MUTE_BUTTON_Pin */
+  GPIO_InitStruct.Pin = DOOR_SENSOR_Pin|BUZZER_CTRL_Pin|MUTE_BUTTON_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : KPD_R1_Pin KPD_R2_Pin KPD_R3_Pin KPD_R4_Pin */

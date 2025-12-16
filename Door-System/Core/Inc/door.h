@@ -10,13 +10,17 @@
 
 #include "global.h"
 
-int isDoorClose();
-int isPasswordCorrect();
-void unlock_door();
-void lock_door();
-void alert();
-void stop_alert();
-void update_led();
+#define DOOR_SENSOR_PORT DOOR_SENSOR_GPIO_Port
+#define DOOR_SENSOR_PIN  DOOR_SENSOR_Pin
+#define DOOR_RED_LED_PORT DOOR_RED_LED_GPIO_Port
+#define DOOR_RED_LED_PIN  DOOR_RED_LED_Pin
+#define DOOR_GREEN_LED_PORT DOOR_GREEN_LED_GPIO_Port
+#define DOOR_GREEN_LED_PIN  DOOR_GREEN_LED_Pin
+#define DOOR_SOLENOID_PORT DOOR_SOLENOID_GPIO_Port
+#define DOOR_SOLENOID_PIN  DOOR_SOLENOID_Pin
+
+void door_init(void);
 void door_fsm_run(void);
+
 
 #endif /* INC_DOOR_H_ */

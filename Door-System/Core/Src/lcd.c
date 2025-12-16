@@ -59,29 +59,42 @@ static void LCD_Send(uint8_t value, uint8_t rs);
 /* ====== Implementation ====== */
 
 void LCD_Init(void) {
-    // Đợi nguồn ổn định
-    HAL_Delay(50);
+    // Đợi nguồn ổn định - quan trọng cho Proteus
+    HAL_Delay(100);
 
     // Đảm bảo RS, EN = 0
     HAL_GPIO_WritePin(LCD_RS_PORT, LCD_RS_PIN, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_RESET);
+    HAL_Delay(15);
 
-    // Khởi tạo chuẩn 4-bit theo trình tự recommended
-    // Gửi 0x33, 0x32 để thiết lập 4-bit mode
-    LCD_SendCommand(0x33);
-    LCD_SendCommand(0x32);
+    // Khởi tạo chuẩn 4-bit theo datasheet HD44780
+    // Bước 1: Gửi 0x03 ba lần (8-bit mode reset)
+    LCD_Write4Bits(0x03);
+    HAL_Delay(5);
+    LCD_Write4Bits(0x03);
+    HAL_Delay(1);
+    LCD_Write4Bits(0x03);
+    HAL_Delay(1);
+    
+    // Bước 2: Chuyển sang 4-bit mode
+    LCD_Write4Bits(0x02);
+    HAL_Delay(1);
 
     // Function set: 4-bit, 2 line, 5x8 dots
-    LCD_SendCommand(LCD_CMD_FUNCTION_SET | LCD_4BIT_MODE | LCD_2LINE | LCD_5x8DOTS);
+    LCD_SendCommand(0x28);
+    HAL_Delay(1);
 
     // Display control: Display ON, Cursor OFF, Blink OFF
-    LCD_SendCommand(LCD_CMD_DISPLAY_CONTROL | LCD_DISPLAY_ON | LCD_CURSOR_OFF | LCD_BLINK_OFF);
+    LCD_SendCommand(0x0C);
+    HAL_Delay(1);
 
     // Entry mode: tăng địa chỉ, không dịch màn hình
-    LCD_SendCommand(LCD_CMD_ENTRY_MODE_SET | LCD_ENTRY_INCREMENT | LCD_ENTRY_SHIFT_OFF);
+    LCD_SendCommand(0x06);
+    HAL_Delay(1);
 
     // Clear display
     LCD_Clear();
+    HAL_Delay(2);
 }
 
 void LCD_Clear(void) {
@@ -118,12 +131,14 @@ void LCD_PutChar(char c) {
 
 static void LCD_PulseEnable(void) {
     HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_RESET);
-    // delay ngắn, ~1 us
-    HAL_Delay(1);
+    // Delay cho Proteus - tối thiểu 450ns
+    for(volatile int i = 0; i < 10; i++);
     HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_SET);
-    HAL_Delay(1);
+    // Enable pulse width - tối thiểu 450ns
+    for(volatile int i = 0; i < 10; i++);
     HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_RESET);
-    HAL_Delay(1);
+    // Delay sau pulse - cho LCD xử lý
+    for(volatile int i = 0; i < 100; i++);
 }
 
 static void LCD_Write4Bits(uint8_t data) {

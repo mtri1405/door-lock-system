@@ -13,7 +13,7 @@
 
 #define PASSWORD_LENGTH        4
 #define MAX_WRONG_ATTEMPTS     3
-#define INITIAL_LOCK_TIME_MS   60000U   // 60s
+#define INITIAL_LOCK_TIME      6000   // 60s = 6000 * 10ms
 
 typedef enum {
     PW_STATE_INPUT = 0,   // Đang chờ nhập 4 ký tự
@@ -44,8 +44,7 @@ static PasswordState pw_state  = PW_STATE_INPUT;
 static PasswordMode  pw_mode   = PW_MODE_NORMAL;
 
 static uint8_t  wrong_attempts       = 0;
-static uint32_t lock_until_tick      = 0;
-static uint32_t current_lock_time_ms = INITIAL_LOCK_TIME_MS;
+static int      current_lock_time    = INITIAL_LOCK_TIME;
 
 // Sự kiện “vừa nhập đúng mật khẩu” (cho door FSM)
 static int pw_correct_flag       = 0;
@@ -298,8 +297,7 @@ void password_init(void) {
     pw_mode   = PW_MODE_NORMAL;
 
     wrong_attempts       = 0;
-    lock_until_tick      = 0;
-    current_lock_time_ms = INITIAL_LOCK_TIME_MS;
+    current_lock_time    = INITIAL_LOCK_TIME;
 
     pw_correct_flag      = 0;
     intruder_alarm_flag  = 0;
@@ -310,26 +308,25 @@ void password_init(void) {
     current_pw[2] = 3;
     current_pw[3] = 4;
 
+    LCD_Clear();
     lcd_show_message("Enter password", "");
     pw_clear_input();
 }
 
 void password_fsm_run(void) {
-    uint32_t now = HAL_GetTick();
 
     // Nếu đang LOCKED: xử lý riêng
     if (pw_state == PW_STATE_LOCKED) {
-        if (now >= lock_until_tick) {
+        if (timer_password_flag) {
             // Hết thời gian khóa
             pw_state = PW_STATE_INPUT;
             wrong_attempts = 0;
             intruder_alarm_flag = 0; // hết báo xâm nhập
-            lcd_show_message("Enter password", "");
+            LCD_Clear();
+            lcd_show_message("Lockout ended", "Enter password");
             pw_clear_input();
         } else {
-            // Đang bị khóa
-            // Có thể hiển thị thời gian còn lại (optional)
-            // Ở đây chỉ hiện thông báo đơn giản
+            // Đang bị khóa - không xử lý gì
             return;
         }
     }
@@ -373,8 +370,9 @@ void password_fsm_run(void) {
                 // ĐÚNG MẬT KHẨU
                 pw_correct_flag      = 1;
                 wrong_attempts       = 0;
-                current_lock_time_ms = INITIAL_LOCK_TIME_MS;
-                lcd_show_message("Password OK", "Door unlocked");
+                current_lock_time    = INITIAL_LOCK_TIME;
+                LCD_Clear();
+                lcd_show_message("Password OK", "Access Granted");
                 // Chờ door FSM xử lý mở cửa, sau đó mình quay về nhập bình thường
                 pw_mode  = PW_MODE_NORMAL;
                 pw_state = PW_STATE_INPUT;
@@ -387,16 +385,18 @@ void password_fsm_run(void) {
                 if (wrong_attempts >= MAX_WRONG_ATTEMPTS) {
                     // Bị khóa
                     pw_state = PW_STATE_LOCKED;
-                    lock_until_tick = now + current_lock_time_ms;
+                    setTimerPassword(current_lock_time);
                     intruder_alarm_flag = 1;   // báo xâm nhập
 
                     // Tăng thời gian lock cho lần sau (giới hạn tối đa 5 phút)
-                    if (current_lock_time_ms < 5 * 60000U) {
-                        current_lock_time_ms *= 2;
+                    if (current_lock_time < 5 * 6000) {  // 5 phút = 30000 ticks
+                        current_lock_time *= 2;
                     }
 
+                    LCD_Clear();
                     lcd_show_message("LOCKED!", "Too many tries");
                 } else {
+                    LCD_Clear();
                     lcd_show_message("Wrong password", "Try again");
                     pw_state = PW_STATE_INPUT;
                 }
@@ -409,9 +409,11 @@ void password_fsm_run(void) {
                 // Mật khẩu cũ đúng -> nhập mật khẩu mới lần 1
                 pw_mode  = PW_MODE_CHANGE_NEW1;
                 pw_state = PW_STATE_INPUT;
+                LCD_Clear();
                 lcd_show_message("New password:", "");
                 pw_clear_input();
             } else {
+                LCD_Clear();
                 lcd_show_message("Wrong old pass", "Cancel change");
                 // Có thể tính đây là 1 lần sai như NORMAL, hoặc bỏ qua
                 pw_mode  = PW_MODE_NORMAL;
@@ -427,7 +429,8 @@ void password_fsm_run(void) {
             }
             pw_mode  = PW_MODE_CHANGE_NEW2;
             pw_state = PW_STATE_INPUT;
-            lcd_show_message("Again new pass", "");
+            LCD_Clear();
+            lcd_show_message("Confirm new:", "");
             pw_clear_input();
             break;
 
@@ -438,8 +441,10 @@ void password_fsm_run(void) {
                 for (int i = 0; i < PASSWORD_LENGTH; i++) {
                     current_pw[i] = new_pw_candidate[i];
                 }
-                lcd_show_message("Change OK", "");
+                LCD_Clear();
+                lcd_show_message("Password", "Changed OK!");
             } else {
+                LCD_Clear();
                 lcd_show_message("Not matched", "Pass unchanged");
             }
             pw_mode  = PW_MODE_NORMAL;

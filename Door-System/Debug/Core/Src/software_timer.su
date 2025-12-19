@@ -1,3 +1,6 @@
-software_timer.c:17:6:setTimer1	16	static
-software_timer.c:22:6:setTimerDebounce	16	static
-software_timer.c:27:6:timerRun	4	static
+software_timer.c:29:6:setTimer1	16	static
+software_timer.c:34:6:setTimerDebounce	16	static
+software_timer.c:39:6:setTimerDoor	16	static
+software_timer.c:44:6:setTimerPassword	16	static
+software_timer.c:49:6:setTimerLcdDisplay	16	static
+software_timer.c:54:6:timerRun	4	static

@@ -59,18 +59,18 @@ static void LCD_Send(uint8_t value, uint8_t rs);
 /* ====== Implementation ====== */
 
 void LCD_Init(void) {
-    // Đợi nguồn ổn định - quan trọng cho Proteus
-    HAL_Delay(100);
+    // Đợi nguồn ổn định - giảm delay để tránh Proteus crash
+    HAL_Delay(20);
 
     // Đảm bảo RS, EN = 0
     HAL_GPIO_WritePin(LCD_RS_PORT, LCD_RS_PIN, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_RESET);
-    HAL_Delay(15);
+    HAL_Delay(2);
 
     // Khởi tạo chuẩn 4-bit theo datasheet HD44780
     // Bước 1: Gửi 0x03 ba lần (8-bit mode reset)
     LCD_Write4Bits(0x03);
-    HAL_Delay(5);
+    HAL_Delay(1);
     LCD_Write4Bits(0x03);
     HAL_Delay(1);
     LCD_Write4Bits(0x03);
@@ -82,19 +82,15 @@ void LCD_Init(void) {
 
     // Function set: 4-bit, 2 line, 5x8 dots
     LCD_SendCommand(0x28);
-    HAL_Delay(1);
 
     // Display control: Display ON, Cursor OFF, Blink OFF
     LCD_SendCommand(0x0C);
-    HAL_Delay(1);
 
     // Entry mode: tăng địa chỉ, không dịch màn hình
     LCD_SendCommand(0x06);
-    HAL_Delay(1);
 
     // Clear display
     LCD_Clear();
-    HAL_Delay(2);
 }
 
 void LCD_Clear(void) {
@@ -130,15 +126,11 @@ void LCD_PutChar(char c) {
 /* ====== Static helper functions ====== */
 
 static void LCD_PulseEnable(void) {
-    HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_RESET);
-    // Delay cho Proteus - tối thiểu 450ns
-    for(volatile int i = 0; i < 10; i++);
     HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_SET);
-    // Enable pulse width - tối thiểu 450ns
-    for(volatile int i = 0; i < 10; i++);
+    // Small delay using NOP instructions instead of HAL_Delay
+    for(volatile int i = 0; i < 10; i++); // ~1us delay
     HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_RESET);
-    // Delay sau pulse - cho LCD xử lý
-    for(volatile int i = 0; i < 100; i++);
+    for(volatile int i = 0; i < 10; i++); // ~1us delay
 }
 
 static void LCD_Write4Bits(uint8_t data) {
@@ -171,11 +163,11 @@ static void LCD_Send(uint8_t value, uint8_t rs) {
 
 void LCD_SendCommand(uint8_t cmd) {
     LCD_Send(cmd, 0);
-    HAL_Delay(2); // đảm bảo đủ thời gian xử lý
+    // HAL_Delay(2); // Removed to prevent Proteus crash
 }
 
 void LCD_SendData(uint8_t data) {
     LCD_Send(data, 1);
-    HAL_Delay(1);
+    // HAL_Delay(1); // Removed to prevent Proteus crash
 }
 

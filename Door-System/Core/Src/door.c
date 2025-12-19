@@ -14,20 +14,18 @@
 /* ====== Door FSM States ====== */
 typedef enum {
     DOOR_STATE_LOCKED = 0,      // Cửa khóa, đèn đỏ sáng
-    DOOR_STATE_UNLOCKING,       // Đang mở khóa (delay nhỏ)
     DOOR_STATE_UNLOCKED,        // Cửa đã mở khóa, đèn xanh sáng
     DOOR_STATE_WAITING_CLOSE,   // Đợi người dùng đóng cửa
     DOOR_STATE_ALARM            // Báo động xâm nhập
 } DoorState;
 
 /* ====== Configuration ====== */
-#define DOOR_UNLOCK_TIME_MS     5000U    // 5 giây mở khóa tự động đóng
-#define DOOR_OPEN_TIMEOUT_MS    10000U   // 10 giây cửa mở quá lâu -> báo động
-#define DOOR_ALARM_DURATION_MS  30000U   // 30 giây báo động
+#define DOOR_UNLOCK_TIME        500    // 5 giây = 500 * 10ms
+#define DOOR_OPEN_TIMEOUT       1000   // 10 giây = 1000 * 10ms
+#define DOOR_ALARM_DURATION     3000   // 30 giây = 3000 * 10ms
 
 /* ====== Private Variables ====== */
 static DoorState door_state = DOOR_STATE_LOCKED;
-static uint32_t door_timer_start = 0;
 
 // Cờ buzzer alarm
 static int buzzer_alarm_active = 0;
@@ -56,7 +54,7 @@ static void led_blink_red(void) {
     static uint32_t last_toggle = 0;
     uint32_t now = HAL_GetTick();
     
-    if (now - last_toggle > 200) { // Blink mỗi 200ms
+    if (now - last_toggle > 500) { // Blink mỗi 200ms
         HAL_GPIO_TogglePin(DOOR_RED_LED_PORT, DOOR_RED_LED_PIN);
         last_toggle = now;
     }
@@ -83,138 +81,120 @@ void door_init(void) {
     // Khởi tạo buzzer
     Buzzer_Init();
     
-    // Test LEDs
+    // Test LEDs - removed HAL_Delay to prevent Proteus crash
     HAL_GPIO_WritePin(DOOR_RED_LED_PORT, DOOR_RED_LED_PIN, GPIO_PIN_SET);
     HAL_GPIO_WritePin(DOOR_GREEN_LED_PORT, DOOR_GREEN_LED_PIN, GPIO_PIN_SET);
-    HAL_Delay(200);
     HAL_GPIO_WritePin(DOOR_GREEN_LED_PORT, DOOR_GREEN_LED_PIN, GPIO_PIN_RESET);
 }
 
+// Hàm helper để cập nhật giao diện nhanh
+void update_lcd_lock_screen(void) {
+    LCD_Clear();
+    LCD_SetCursor(0, 0);
+    LCD_Print("Enter Password:");
+    LCD_SetCursor(1, 0);
+    LCD_Print("PASS: ____");
+}
+
 void door_fsm_run(void) {
-    uint32_t now = HAL_GetTick();
+    
+    // Dừng door FSM khi password bị khóa do nhập sai quá nhiều lần
+    if (password_is_locked()) {
+        // Giữ nguyên trạng thái hiện tại, không xử lý gì
+        // Khi hết thời gian khóa, FSM sẽ hoạt động lại bình thường
+        return;
+    }
     
     switch (door_state) {
         
     case DOOR_STATE_LOCKED:
-        // Trạng thái: Cửa khóa, chờ password đúng
-        lock_door();
+        lock_door(); // Đảm bảo chốt luôn đóng
         
-        // Kiểm tra xâm nhập (cửa bị mở mà không có password)
-        if (is_door_open() && !password_is_locked()) {
+        // 1. Cửa bị cạy (đang khóa mà cảm biến báo mở)
+        if (is_door_open()) {
             door_state = DOOR_STATE_ALARM;
-            door_timer_start = now;
+            setTimerDoor(DOOR_ALARM_DURATION);
             activate_buzzer_alarm();
             LCD_Clear();
-            LCD_SetCursor(0, 0);
-            LCD_Print("INTRUSION ALERT!");
-            LCD_SetCursor(1, 0);
-            LCD_Print("Close door now!");
+            LCD_Print("SECURITY BREACH!");
+            break;
         }
-        
-        // Kiểm tra password đúng
-        if (password_is_correct_event()) {
-            door_state = DOOR_STATE_UNLOCKING;
-            door_timer_start = now;
-        }
-        
-        // Nếu system bị lock do sai password nhiều lần
+
+        // 2. Nhập sai quá nhiều lần
         if (password_is_intruder_alarm()) {
             door_state = DOOR_STATE_ALARM;
-            door_timer_start = now;
+            setTimerDoor(DOOR_ALARM_DURATION);
             activate_buzzer_alarm();
+            LCD_Clear();
+            LCD_Print("INTRUDER ALERT!");
+            break;
         }
-        break;
-        
-    case DOOR_STATE_UNLOCKING:
-        // Trạng thái: Đang mở khóa (có thể thêm animation)
-        unlock_door();
-        
-        // Chuyển sang UNLOCKED ngay lập tức
-        door_state = DOOR_STATE_UNLOCKED;
-        door_timer_start = now;
+
+        // 3. Mở khóa thành công
+        if (password_is_correct_event()) {
+            door_state = DOOR_STATE_UNLOCKED;
+            unlock_door();
+            setTimerDoor(DOOR_UNLOCK_TIME);
+            LCD_Clear();
+            LCD_Print("Door Unlocked");
+            LCD_SetCursor(1, 0);
+            LCD_Print("Welcome!");
+        }
         break;
         
     case DOOR_STATE_UNLOCKED:
-        // Trạng thái: Cửa đã mở khóa, đợi người dùng vào
-        unlock_door();
-        
-        // Kiểm tra timeout tự động khóa lại
-        if (now - door_timer_start > DOOR_UNLOCK_TIME_MS) {
+        // Đợi người dùng mở cửa và vào nhà
+        if (timer_door_flag) {
+            timer_door_flag = 0;
             if (is_door_open()) {
-                // Cửa vẫn mở -> chuyển sang WAITING_CLOSE
+                // Người dùng đã mở cửa nhưng chưa đóng
                 door_state = DOOR_STATE_WAITING_CLOSE;
-                door_timer_start = now;
-                LCD_Clear();
-                LCD_SetCursor(0, 0);
-                LCD_Print("Please close");
-                LCD_SetCursor(1, 0);
-                LCD_Print("the door");
+                setTimerDoor(DOOR_OPEN_TIMEOUT); // Chờ thêm một khoảng trước khi báo động
             } else {
-                // Cửa đã đóng -> khóa lại
+                // Hết thời gian mà cửa vẫn đóng (không ai vào) -> Khóa lại
                 door_state = DOOR_STATE_LOCKED;
-                LCD_Clear();
-                LCD_SetCursor(0, 0);
-                LCD_Print("Door locked");
-                HAL_Delay(1000);
+                update_lcd_lock_screen();
             }
         }
         break;
         
     case DOOR_STATE_WAITING_CLOSE:
-        // Trạng thái: Đợi người dùng đóng cửa
-        unlock_door(); // Vẫn mở khóa
-        
-        // Kiểm tra cửa đã đóng chưa
+        // Cửa đang mở, chốt có thể đã đóng (nhưng không cản trở vì cửa đang mở)
+        lock_door(); 
+
         if (!is_door_open()) {
-            // Cửa đã đóng -> khóa lại
             door_state = DOOR_STATE_LOCKED;
-            LCD_Clear();
-            LCD_SetCursor(0, 0);
-            LCD_Print("Door locked");
-            HAL_Delay(1000);
-            break;
-        }
-        
-        // Kiểm tra timeout - cửa mở quá lâu
-        if (now - door_timer_start > DOOR_OPEN_TIMEOUT_MS) {
+            update_lcd_lock_screen();
+        } else if (timer_door_flag) {
+            // Đợi quá lâu không đóng -> Báo động
             door_state = DOOR_STATE_ALARM;
-            door_timer_start = now;
+            setTimerDoor(DOOR_ALARM_DURATION);
             activate_buzzer_alarm();
-            LCD_Clear();
-            LCD_SetCursor(0, 0);
-            LCD_Print("Door open too");
-            LCD_SetCursor(1, 0);
-            LCD_Print("long! ALARM!");
         }
         break;
         
     case DOOR_STATE_ALARM:
-        // Trạng thái: Báo động xâm nhập hoặc cửa mở quá lâu
-        lock_door(); // Khóa cửa
-        led_blink_red(); // Nhấp nháy đèn đỏ
-        
-        // Kiểm tra cửa đã đóng chưa
+        led_blink_red();
+        activate_buzzer_alarm();
+
+        // ĐIỀU KIỆN THOÁT 1: Cửa đóng (Ưu tiên nhất)
         if (!is_door_open()) {
-            // Cửa đã đóng -> tắt alarm, quay về LOCKED
-            door_state = DOOR_STATE_LOCKED;
             deactivate_buzzer_alarm();
+            door_state = DOOR_STATE_LOCKED;
+            update_lcd_lock_screen();
+            timer_door_flag = 0;
+        } 
+        // ĐIỀU KIỆN THOÁT 2: Hết thời gian báo động (nhưng cửa vẫn mở)
+        else if (timer_door_flag) {
+            timer_door_flag = 0;
+            deactivate_buzzer_alarm(); 
+            // KHÔNG về LOCKED, quay lại trạng thái chờ đóng cửa
+            door_state = DOOR_STATE_WAITING_CLOSE; 
             LCD_Clear();
-            LCD_SetCursor(0, 0);
-            LCD_Print("Alarm cleared");
-            LCD_SetCursor(1, 0);
-            LCD_Print("Door locked");
-            HAL_Delay(1000);
-        }
-        
-        // Timeout alarm (tự động tắt sau 30s)
-        if (now - door_timer_start > DOOR_ALARM_DURATION_MS) {
-            if (!is_door_open()) {
-                door_state = DOOR_STATE_LOCKED;
-                deactivate_buzzer_alarm();
-            }
+            LCD_Print("Close the Door!");
         }
         break;
-        
+
     default:
         door_state = DOOR_STATE_LOCKED;
         break;

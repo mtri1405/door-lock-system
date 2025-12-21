@@ -19,9 +19,10 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "software_timer.h"
-#include <stdbool.h>
 #include "buzzer.h"
+#include "software_timer.h"
+
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -98,10 +99,10 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    /* USER CODE END WHILE */
 	  Buzzer_Run();
 
-	      // Giữ lại delay để giảm tải CPU
-	      HAL_Delay(10);
+    /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
@@ -201,21 +202,18 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(BUZZER_CTRL_GPIO_Port, BUZZER_CTRL_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(nine_GPIO_Port, nine_Pin, GPIO_PIN_RESET);
-
   /*Configure GPIO pins : DOOR_SENSOR_Pin MUTE_BUTTON_Pin */
   GPIO_InitStruct.Pin = DOOR_SENSOR_Pin|MUTE_BUTTON_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : BUZZER_CTRL_Pin nine_Pin */
-  GPIO_InitStruct.Pin = BUZZER_CTRL_Pin|nine_Pin;
+  /*Configure GPIO pin : BUZZER_CTRL_Pin */
+  GPIO_InitStruct.Pin = BUZZER_CTRL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(BUZZER_CTRL_GPIO_Port, &GPIO_InitStruct);
 
 }
 

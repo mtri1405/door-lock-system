@@ -58,14 +58,12 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define DOOR_SENSOR_Pin GPIO_PIN_0
+#define DOOR_SENSOR_Pin GPIO_PIN_7
 #define DOOR_SENSOR_GPIO_Port GPIOA
-#define MUTE_BUTTON_Pin GPIO_PIN_1
-#define MUTE_BUTTON_GPIO_Port GPIOA
-#define BUZZER_CTRL_Pin GPIO_PIN_5
+#define BUZZER_CTRL_Pin GPIO_PIN_11
 #define BUZZER_CTRL_GPIO_Port GPIOA
-#define nine_Pin GPIO_PIN_12
-#define nine_GPIO_Port GPIOA
+#define MUTE_BUTTON_Pin GPIO_PIN_12
+#define MUTE_BUTTON_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

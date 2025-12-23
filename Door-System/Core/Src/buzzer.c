@@ -1,106 +1,84 @@
 /*
-* buzzer.c
-*
-*  Created on: Nov 8, 2025
-*      Author: thait
-*/
+ * buzzer.c
+ * - Hardware: Buzzer nối nguồn 3.3V (Active LOW: 0=Kêu, 1=Tắt)
+ * - Logic: Nhận lệnh Activate/Deactivate từ hệ thống Door
+ */
 #include "buzzer.h"
+#include "main.h"
+#include <stdbool.h> // Sửa lỗi 'bool', 'true', 'false'
 
-/* ====== Buzzer Configuration ====== */
-#define BUZZER_CTRL_PORT    BUZZER_CTRL_GPIO_Port
-#define BUZZER_CTRL_PIN     BUZZER_CTRL_Pin
+// Biến trạng thái nội bộ
+static bool isAlarmActive = false; // Cờ báo động từ hệ thống
+static bool isMuted = false;       // Cờ ngắt tiếng tạm thời
+static bool muteBtnWasPressed = false; // Debounce cho nút MUTE
 
-#define MUTE_BTN_PORT       MUTE_BUTTON_GPIO_Port
-#define MUTE_BTN_PIN        MUTE_BUTTON_Pin
+/* ====== API KHỞI TẠO & ĐIỀU KHIỂN ====== */
 
-/* ====== Private Variables ====== */
-static int buzzer_active = 0;          // Cờ buzzer đang hoạt động
-static int buzzer_muted = 0;           // Cờ buzzer bị mute
-static int mute_button_pressed = 0;    // Debounce mute button
-
-/* ====== Private Functions ====== */
-
-static void buzzer_turn_on(void) {
-    // Buzzer active HIGH
-    HAL_GPIO_WritePin(BUZZER_CTRL_PORT, BUZZER_CTRL_PIN, GPIO_PIN_SET);
-}
-
-static void buzzer_turn_off(void) {
-    // Buzzer off
-    HAL_GPIO_WritePin(BUZZER_CTRL_PORT, BUZZER_CTRL_PIN, GPIO_PIN_RESET);
-}
-
-static int is_mute_button_pressed(void) {
-    // Mute button active LOW (pull-up)
-    return (HAL_GPIO_ReadPin(MUTE_BTN_PORT, MUTE_BTN_PIN) == GPIO_PIN_RESET);
-}
-
-/* ====== Public Functions ====== */
-
-/**
- * @brief Khởi tạo buzzer module
- */
 void Buzzer_Init(void) {
-    buzzer_active = 0;
-    buzzer_muted = 0;
-    mute_button_pressed = 0;
-    buzzer_turn_off();
+    // Khởi tạo trạng thái tắt (Active LOW -> Xuất mức 1 để tắt)
+    HAL_GPIO_WritePin(BUZZER_CTRL_GPIO_Port, BUZZER_CTRL_Pin, GPIO_PIN_SET);
+    isAlarmActive = false;
+    isMuted = false;
+    muteBtnWasPressed = false;
 }
 
-/**
- * @brief Kích hoạt buzzer (được gọi từ door FSM)
- */
+// Hàm này được gọi từ door.c khi có sự cố (cạy cửa/quên đóng)
 void Buzzer_Activate(void) {
-    buzzer_active = 1;
-    buzzer_muted = 0;  // Reset mute flag khi có alarm mới
+    isAlarmActive = true;
+    isMuted = false; // Có báo động mới thì hủy chế độ im lặng cũ
 }
 
-/**
- * @brief Tắt buzzer (được gọi từ door FSM)
- */
+// Hàm này được gọi từ door.c khi sự cố đã được xử lý
 void Buzzer_Deactivate(void) {
-    buzzer_active = 0;
-    buzzer_muted = 0;
-    buzzer_turn_off();
+    isAlarmActive = false;
+    isMuted = false;
+    // Tắt còi ngay lập tức
+    HAL_GPIO_WritePin(BUZZER_CTRL_GPIO_Port, BUZZER_CTRL_Pin, GPIO_PIN_SET);
 }
 
-/**
- * @brief Kiểm tra buzzer có đang hoạt động không
- * @return 1 nếu active, 0 nếu không
- */
+// Kiểm tra buzzer có đang active không
 int Buzzer_IsActive(void) {
-    return buzzer_active;
+    return isAlarmActive ? 1 : 0;
 }
 
-/**
- * @brief Hàm chạy logic chính của buzzer
- * Gọi liên tục trong main loop
- * Xử lý:
- * - Bật/tắt buzzer dựa trên buzzer_active flag
- * - Xử lý nút mute
- */
-void Buzzer_Run(void) {
-    // Xử lý nút mute với debounce đơn giản
-    if (is_mute_button_pressed()) {
-        if (!mute_button_pressed) {
-            // Sườn lên của nút mute
-            mute_button_pressed = 1;
+/* ====== HÀM CHẠY TRONG MAIN LOOP ====== */
+void Buzzer_Run(void)
+{
+    // Logic nút Mute với DEBOUNCE (phát hiện sườn lên) - NÚT TOGGLE
+    // Pull-down: Nhấn nút = 1 (SET)
+    bool btnCurrentState = (HAL_GPIO_ReadPin(MUTE_BUTTON_GPIO_Port, MUTE_BUTTON_Pin) == GPIO_PIN_SET);
+    
+    if (btnCurrentState && !muteBtnWasPressed) {
+        // SƯỜN LÊN - nút vừa được nhấn
+        muteBtnWasPressed = true;
+        
+        if (isAlarmActive) {
+            // TOGGLE trạng thái mute (bật/tắt buzzer)
+            isMuted = !isMuted;
             
-            if (buzzer_active) {
-                // Mute buzzer
-                buzzer_muted = 1;
+            // Cập nhật trạng thái buzzer NGAY LẬP TỨC
+            if (isMuted) {
+                // Tắt buzzer
+                HAL_GPIO_WritePin(BUZZER_CTRL_GPIO_Port, BUZZER_CTRL_Pin, GPIO_PIN_SET);
+            } else {
+                // Bật buzzer
+                HAL_GPIO_WritePin(BUZZER_CTRL_GPIO_Port, BUZZER_CTRL_Pin, GPIO_PIN_RESET);
             }
         }
-    } else {
-        mute_button_pressed = 0;
     }
-    
-    // Điều khiển buzzer output
-    if (buzzer_active && !buzzer_muted) {
-        // Buzzer kêu liên tục
-        buzzer_turn_on();
-    } else {
-        // Buzzer tắt
-        buzzer_turn_off();
+    else if (!btnCurrentState) {
+        // Nút đã được thả ra
+        muteBtnWasPressed = false;
+    }
+
+    // ĐIỀU KHIỂN CÒI THỰC TẾ
+    // Chỉ kêu khi: Có báo động VÀ Chưa bị tắt tiếng
+    if (isAlarmActive && !isMuted) {
+        // BẬT CÒI (Active LOW -> Xuất mức 0)
+        HAL_GPIO_WritePin(BUZZER_CTRL_GPIO_Port, BUZZER_CTRL_Pin, GPIO_PIN_RESET);
+    }
+    else {
+        // TẮT CÒI (Active LOW -> Xuất mức 1)
+        HAL_GPIO_WritePin(BUZZER_CTRL_GPIO_Port, BUZZER_CTRL_Pin, GPIO_PIN_SET);
     }
 }

@@ -203,24 +203,24 @@ static void MX_GPIO_Init(void)
                           |DOOR_SOLENOID_Pin|BUZZER_CTRL_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, KPD_R1_Pin|KPD_R2_Pin|KPD_R3_Pin|KPD_R4_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, KPD_R1_Pin|KPD_R2_Pin|KPD_R3_Pin|KPD_R4_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pins : LCD_D4_Pin LCD_D5_Pin LCD_D6_Pin LCD_D7_Pin
                            LCD_RS_Pin LCD_EN_Pin DOOR_RED_LED_Pin DOOR_GREEN_LED_Pin
-                           DOOR_SOLENOID_Pin BUZZER_CTRL_Pin */
+                           DOOR_SOLENOID_Pin */
   GPIO_InitStruct.Pin = LCD_D4_Pin|LCD_D5_Pin|LCD_D6_Pin|LCD_D7_Pin
                           |LCD_RS_Pin|LCD_EN_Pin|DOOR_RED_LED_Pin|DOOR_GREEN_LED_Pin
-                          |DOOR_SOLENOID_Pin|BUZZER_CTRL_Pin;
+                          |DOOR_SOLENOID_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : DOOR_SENSOR_Pin MUTE_BUTTON_Pin */
-  GPIO_InitStruct.Pin = DOOR_SENSOR_Pin|MUTE_BUTTON_Pin;
+  /*Configure GPIO pin : DOOR_SENSOR_Pin */
+  GPIO_InitStruct.Pin = DOOR_SENSOR_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(DOOR_SENSOR_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : KPD_R1_Pin KPD_R2_Pin KPD_R3_Pin KPD_R4_Pin */
   GPIO_InitStruct.Pin = KPD_R1_Pin|KPD_R2_Pin|KPD_R3_Pin|KPD_R4_Pin;
@@ -228,6 +228,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : BUZZER_CTRL_Pin */
+  GPIO_InitStruct.Pin = BUZZER_CTRL_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(BUZZER_CTRL_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : MUTE_BUTTON_Pin */
+  GPIO_InitStruct.Pin = MUTE_BUTTON_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(MUTE_BUTTON_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : KPD_C1_Pin KPD_C2_Pin KPD_C3_Pin */
   GPIO_InitStruct.Pin = KPD_C1_Pin|KPD_C2_Pin|KPD_C3_Pin;

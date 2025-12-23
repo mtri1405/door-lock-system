@@ -40,4 +40,22 @@ int password_is_locked(void);
  */
 int password_is_intruder_alarm(void);
 
+void password_stop_alarm_signal(void);
+
+/**
+ * @brief Hiển thị màn hình nhập password
+ * Gọi từ door module khi cần quay về trạng thái nhập password
+ */
+void password_show_input_screen(void);
+
+/**
+ * @brief Bật password FSM
+ */
+void password_enable_fsm(void);
+
+/**
+ * @brief Tắt password FSM
+ */
+void password_disable_fsm(void);
+
 #endif /* INC_PASSWORD_H_ */

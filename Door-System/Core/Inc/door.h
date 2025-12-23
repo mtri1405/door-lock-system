@@ -21,6 +21,9 @@
 
 void door_init(void);
 void door_fsm_run(void);
+int door_is_unlocked_or_open(void);
+void door_enable_fsm(void);   // Bật door FSM
+void door_disable_fsm(void);  // Tắt door FSM
 
 
 #endif /* INC_DOOR_H_ */

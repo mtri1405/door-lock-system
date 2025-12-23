@@ -49,8 +49,8 @@ static int      current_lock_time    = INITIAL_LOCK_TIME;
 // Sự kiện “vừa nhập đúng mật khẩu” (cho door FSM)
 static int pw_correct_flag       = 0;
 // Cờ nghi ngờ xâm nhập (sai >= 3 lần, đang LOCKED)
-static int intruder_alarm_flag   = 0;
-
+static int intruder_alarm_flag   = 0;// Flag enable/disable password FSM
+static int enable_password_fsm   = 1;
 
 /* ====== Cấu hình keypad 3x4 (PHONE) ======
  *
@@ -315,9 +315,15 @@ void password_init(void) {
 
 void password_fsm_run(void) {
 
+    // Kiểm tra flag enable password FSM
+    if (!enable_password_fsm) {
+        return;  // FSM bị disable, không xử lý
+    }
+
     // Nếu đang LOCKED: xử lý riêng
     if (pw_state == PW_STATE_LOCKED) {
         if (timer_password_flag) {
+            timer_password_flag = 0;
             // Hết thời gian khóa
             pw_state = PW_STATE_INPUT;
             wrong_attempts = 0;
@@ -331,8 +337,12 @@ void password_fsm_run(void) {
         }
     }
 
+    // KIỂM TRA: Nếu cửa đang unlocked/open thì chỉ xử lý phím '#' để đổi mật khẩu
+    // Các phím số sẽ không được xử lý
+    int door_is_open_now = door_is_unlocked_or_open();
+    
     // Khi không bị LOCKED:
-    // Có thể chuyển mode đổi mật khẩu nếu nhấn '#'
+    // Có thể chuyển mode đổi mật khẩu nếu nhấn '#' (kể cả khi cửa đang mở)
     if (pw_state == PW_STATE_INPUT && pw_mode == PW_MODE_NORMAL) {
         if (is_change_mode_requested()) {
             // Chỉ cho đổi pass khi không bị khóa
@@ -342,10 +352,13 @@ void password_fsm_run(void) {
         }
     }
 
-    // Xử lý CLEAR ở mọi mode khi đang nhập
+    // Xử lý CLEAR ở mọi mode khi đang nhập (chỉ khi cửa không mở HOẶC đang đổi pass)
     if (pw_state == PW_STATE_INPUT) {
         if (is_clear_pressed()) {
-            pw_clear_input();
+            // Cho phép clear khi đang đổi mật khẩu hoặc cửa đóng
+            if (pw_mode != PW_MODE_NORMAL || !door_is_open_now) {
+                pw_clear_input();
+            }
         }
     }
 
@@ -354,10 +367,26 @@ void password_fsm_run(void) {
         if (is_enter_pressed()) {
             uint8_t digit = read_digit_from_input();
             if (digit > 9) digit = 9;
-            pw_shift_and_append(digit);
-
-            if (digits_entered >= PASSWORD_LENGTH) {
-                pw_state = PW_STATE_CHECK;
+            
+            // Nếu đang đổi pass: luôn cho nhập
+            if (pw_mode != PW_MODE_NORMAL) {
+                pw_shift_and_append(digit);
+                if (digits_entered >= PASSWORD_LENGTH) {
+                    pw_state = PW_STATE_CHECK;
+                }
+            }
+            // Nếu mode NORMAL: chỉ block khi cửa đang mở
+            else if (!door_is_open_now) {
+                pw_shift_and_append(digit);
+                if (digits_entered >= PASSWORD_LENGTH) {
+                    pw_state = PW_STATE_CHECK;
+                }
+            }
+            // Nếu cửa đang mở và mode NORMAL: hiển thị thông báo
+            else {
+                // Hiển thị thông báo ngắn gọn trên dòng 2
+                LCD_SetCursor(1, 0);
+                LCD_Print("Door is open!  ");
             }
         }
     }
@@ -392,7 +421,8 @@ void password_fsm_run(void) {
                     if (current_lock_time < 5 * 6000) {  // 5 phút = 30000 ticks
                         current_lock_time *= 2;
                     }
-
+                    
+                    // Hiển thị thông báo bị khóa
                     LCD_Clear();
                     lcd_show_message("LOCKED!", "Too many tries");
                 } else {
@@ -475,4 +505,25 @@ int password_is_locked(void) {
 
 int password_is_intruder_alarm(void) {
     return intruder_alarm_flag;
+}
+
+void password_stop_alarm_signal(void) {
+    intruder_alarm_flag = 0; // Tắt tín hiệu báo động nhưng vẫn giữ khóa bàn phím
+}
+
+void password_show_input_screen(void) {
+    // Chỉ hiển thị nếu không đang bị locked
+    if (pw_state != PW_STATE_LOCKED) {
+        LCD_Clear();
+        lcd_show_message("Enter password", "");
+        pw_clear_input();
+    }
+}
+
+void password_enable_fsm(void) {
+    enable_password_fsm = 1;
+}
+
+void password_disable_fsm(void) {
+    enable_password_fsm = 0;
 }

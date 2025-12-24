@@ -28,6 +28,13 @@ typedef enum {
     PW_MODE_CHANGE_NEW2       // Nhập mật khẩu mới lần 2 (xác nhận)
 } PasswordMode;
 
+typedef enum {
+    PW_DISPLAY_NONE = 0,
+    PW_DISPLAY_CHANGE_OLD_WRONG,
+    PW_DISPLAY_CHANGE_SUCCESS,
+    PW_DISPLAY_CHANGE_NOT_MATCH
+} PasswordDisplayState;
+
 /* ====== Biến trạng thái password ====== */
 
 // Mật khẩu hiện tại (chỉ dùng số 0–9)
@@ -42,6 +49,7 @@ static uint8_t new_pw_candidate[PASSWORD_LENGTH] = {0, 0, 0, 0};
 
 static PasswordState pw_state  = PW_STATE_INPUT;
 static PasswordMode  pw_mode   = PW_MODE_NORMAL;
+static PasswordDisplayState pw_display_state = PW_DISPLAY_NONE;
 
 static uint8_t  wrong_attempts       = 0;
 static int      current_lock_time    = INITIAL_LOCK_TIME;
@@ -166,6 +174,7 @@ static int keypad_read_raw_key(void) {
     HAL_GPIO_WritePin(ROW3_GPIO_Port, ROW3_Pin, GPIO_PIN_SET);
     HAL_GPIO_WritePin(ROW4_GPIO_Port, ROW4_Pin, GPIO_PIN_SET);
 
+
     for (int row = 0; row < 4; row++) {
         // Set tất cả hàng = HIGH
         HAL_GPIO_WritePin(ROW1_GPIO_Port, ROW1_Pin, GPIO_PIN_SET);
@@ -188,6 +197,9 @@ static int keypad_read_raw_key(void) {
             HAL_GPIO_WritePin(ROW4_GPIO_Port, ROW4_Pin, GPIO_PIN_RESET);
             break;
         }
+
+        // Delay nhỏ để tín hiệu ổn định trước khi đọc
+        for(volatile int i = 0; i < 100; i++);
 
         // Đọc các cột (active-low)
         int c1 = (HAL_GPIO_ReadPin(COL1_GPIO_Port, COL1_Pin) == GPIO_PIN_RESET);
@@ -220,6 +232,14 @@ static int keypad_read_raw_key(void) {
                     key = -3;           // '#'
                 }
             }
+
+            // QUAN TRỌNG: Set lại tất cả hàng về HIGH TRƯỚC KHI break
+            // Tránh để hàng bị stuck ở LOW
+            HAL_GPIO_WritePin(ROW1_GPIO_Port, ROW1_Pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(ROW2_GPIO_Port, ROW2_Pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(ROW3_GPIO_Port, ROW3_Pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(ROW4_GPIO_Port, ROW4_Pin, GPIO_PIN_SET);
+
             break;
         }
     }
@@ -295,6 +315,7 @@ static int is_change_mode_requested(void) {
 void password_init(void) {
     pw_state  = PW_STATE_INPUT;
     pw_mode   = PW_MODE_NORMAL;
+    pw_display_state = PW_DISPLAY_NONE;
 
     wrong_attempts       = 0;
     current_lock_time    = INITIAL_LOCK_TIME;
@@ -320,6 +341,21 @@ void password_fsm_run(void) {
         return;  // FSM bị disable, không xử lý
     }
 
+    // Xử lý hiển thị tạm thời (1 giây)
+    if (pw_display_state != PW_DISPLAY_NONE) {
+        if (timer_lcd_display_flag) {
+            timer_lcd_display_flag = 0;
+            // Hết 1 giây, chuyển về màn hình nhập password
+            LCD_Clear();
+            lcd_show_message("Enter password", "");
+            pw_mode = PW_MODE_NORMAL;
+            pw_state = PW_STATE_INPUT;
+            pw_clear_input();
+            pw_display_state = PW_DISPLAY_NONE;
+        }
+        return; // Đang hiển thị thông báo, không xử lý input
+    }
+
     // Nếu đang LOCKED: xử lý riêng
     if (pw_state == PW_STATE_LOCKED) {
         if (timer_password_flag) {
@@ -340,15 +376,21 @@ void password_fsm_run(void) {
     // KIỂM TRA: Nếu cửa đang unlocked/open thì chỉ xử lý phím '#' để đổi mật khẩu
     // Các phím số sẽ không được xử lý
     int door_is_open_now = door_is_unlocked_or_open();
-    
-    // Khi không bị LOCKED:
-    // Có thể chuyển mode đổi mật khẩu nếu nhấn '#' (kể cả khi cửa đang mở)
-    if (pw_state == PW_STATE_INPUT && pw_mode == PW_MODE_NORMAL) {
+
+    // Xử lý phím # để chuyển đổi mode hoặc hủy đổi password
+    if (pw_state == PW_STATE_INPUT) {
         if (is_change_mode_requested()) {
-            // Chỉ cho đổi pass khi không bị khóa
-            pw_mode = PW_MODE_CHANGE_OLD;
-            lcd_show_message("Change password", "Old pass:");
-            pw_clear_input();
+            if (pw_mode == PW_MODE_NORMAL) {
+                // Chuyển từ NORMAL sang đổi password
+                pw_mode = PW_MODE_CHANGE_OLD;
+                lcd_show_message("Change password", "Old pass:");
+                pw_clear_input();
+            } else {
+                // Đang đổi password, bấm # để hủy và quay về NORMAL
+                pw_mode = PW_MODE_NORMAL;
+                lcd_show_message("Cancelled", "Enter password");
+                pw_clear_input();
+            }
         }
     }
 
@@ -367,7 +409,7 @@ void password_fsm_run(void) {
         if (is_enter_pressed()) {
             uint8_t digit = read_digit_from_input();
             if (digit > 9) digit = 9;
-            
+
             // Nếu đang đổi pass: luôn cho nhập
             if (pw_mode != PW_MODE_NORMAL) {
                 pw_shift_and_append(digit);
@@ -421,7 +463,7 @@ void password_fsm_run(void) {
                     if (current_lock_time < 5 * 6000) {  // 5 phút = 30000 ticks
                         current_lock_time *= 2;
                     }
-                    
+
                     // Hiển thị thông báo bị khóa
                     LCD_Clear();
                     lcd_show_message("LOCKED!", "Too many tries");
@@ -445,10 +487,8 @@ void password_fsm_run(void) {
             } else {
                 LCD_Clear();
                 lcd_show_message("Wrong old pass", "Cancel change");
-                // Có thể tính đây là 1 lần sai như NORMAL, hoặc bỏ qua
-                pw_mode  = PW_MODE_NORMAL;
-                pw_state = PW_STATE_INPUT;
-                pw_clear_input();
+                pw_display_state = PW_DISPLAY_CHANGE_OLD_WRONG;
+                setTimerLcdDisplay(100); // 1 giây = 100 * 10ms
             }
             break;
 
@@ -473,13 +513,14 @@ void password_fsm_run(void) {
                 }
                 LCD_Clear();
                 lcd_show_message("Password", "Changed OK!");
+                pw_display_state = PW_DISPLAY_CHANGE_SUCCESS;
+                setTimerLcdDisplay(100); // 1 giây = 100 * 10ms
             } else {
                 LCD_Clear();
                 lcd_show_message("Not matched", "Pass unchanged");
+                pw_display_state = PW_DISPLAY_CHANGE_NOT_MATCH;
+                setTimerLcdDisplay(100); // 1 giây = 100 * 10ms
             }
-            pw_mode  = PW_MODE_NORMAL;
-            pw_state = PW_STATE_INPUT;
-            pw_clear_input();
             break;
 
         default:

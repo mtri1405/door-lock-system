@@ -6,7 +6,7 @@
  </FRAME>
  <MODULE name="VSMDEBUG">
   <PWI>
-   <POPUP w="800" x="48" flags="00000002" y="160" h="200" pid="0" iid="-1">
+   <POPUP w="800" x="48" flags="00008003" y="160" h="200" pid="0" iid="-1">
     <PROPERTIES>
      <ITEM name="Message Column Width">661</ITEM>
      <ITEM name="ShowGrid">No</ITEM>
@@ -334,9 +334,9 @@
    </POPUP>
    <POPUP w="600" x="487" flags="0000002a" y="488" h="400" pid="100" iid="1">
     <PROPERTIES>
-     <ITEM name="Breakpoint 0">"",800054C,0000,E206,FAA2,982108008
+     <ITEM name="Breakpoint 0">"",8000554,0000,E206,FAA2,982108008
 </ITEM>
-     <ITEM name="Breakpoint 1">"",8000558,0000,884F,FAA2,-1947514824
+     <ITEM name="Breakpoint 1">"",8000558,0000,149F,FAA2,-1947514824
 </ITEM>
      <ITEM name="CaseSensitive">No</ITEM>
      <ITEM name="DISPADDRS">Yes</ITEM>
@@ -344,7 +344,7 @@
      <ITEM name="DISPOPCODES">No</ITEM>
      <ITEM name="FIXUPBPTS">Yes</ITEM>
      <ITEM name="WordsOnly">No</ITEM>
-     <ITEM name="nBreakpoints">2</ITEM>
+     <ITEM name="nBreakpoints">0</ITEM>
     </PROPERTIES>
    </POPUP>
    <POPUP w="300" x="708" flags="0000000a" y="820" h="300" pid="101" iid="1">

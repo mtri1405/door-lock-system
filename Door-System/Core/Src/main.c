@@ -96,7 +96,6 @@ int main(void)
 		password_fsm_run();  // Handle keypad + password + lockout
 		door_fsm_run();      // Handle solenoid + door sensor + LEDs
 		Buzzer_Run();        // Handle buzzer alarm + mute button
-		 HAL_Delay(10); // Removed - causes access violation in Proteus
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

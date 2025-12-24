@@ -139,6 +139,7 @@ void door_fsm_run(void) {
         if (is_door_open()) {
             unlocked_displayed = 0;  // Reset flag
             door_state = DOOR_STATE_DOOR_OPENED;
+            setTimerDoor(DOOR_OPEN_TIMEOUT);  // Bắt đầu đếm 10 giây
             LCD_Clear();
             LCD_Print("DOOR OPENED");  // Hiển thị khi cửa mở
         } else if (timer_door_flag) {
@@ -151,13 +152,24 @@ void door_fsm_run(void) {
         break;
 
     case DOOR_STATE_DOOR_OPENED:
-        // Cửa đang mở, chờ đóng
+        // Cửa đang mở, chờ đóng hoặc timeout
         if (!is_door_open()) {
             // Cửa vừa đóng
+            timer_door_flag = 0;  // Clear timer
             door_state = DOOR_STATE_DOOR_CLOSED_WAIT;
             setTimerDoor(DOOR_CLOSED_DISPLAY);  // 1 giây
             LCD_Clear();
             LCD_Print("DOOR CLOSED");  // Hiển thị DOOR CLOSED
+        } else if (timer_door_flag) {
+            // Cửa mở quá 10 giây -> Báo động
+            timer_door_flag = 0;
+            door_state = DOOR_STATE_ALARM;
+            setTimerDoor(DOOR_ALARM_DURATION);
+            Buzzer_Activate();
+            LCD_Clear();
+            LCD_Print("WARNING!");
+            LCD_SetCursor(1, 0);
+            LCD_Print("Close Door!");
         }
         break;
 

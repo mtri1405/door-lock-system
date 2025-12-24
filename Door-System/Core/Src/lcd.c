@@ -75,7 +75,7 @@ void LCD_Init(void) {
     HAL_Delay(1);
     LCD_Write4Bits(0x03);
     HAL_Delay(1);
-    
+
     // Bước 2: Chuyển sang 4-bit mode
     LCD_Write4Bits(0x02);
     HAL_Delay(1);
